@@ -11,12 +11,12 @@ const getUser = async () => {
 
 
 const updateUser = async (payload: Record<string, unknown>, id: string) => {
-    const { name, email, phone, role} = payload;
+  const { name, email, phone, role } = payload;
   const result = await pool.query(
     `UPDATE users SET name=$1, email=$2, phone=$3, role=$4 WHERE id=$5 RETURNING *`,
     [name, email, phone, role, id]
   );
-
+  delete result.rows[0].password;
   return result;
 };
 

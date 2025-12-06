@@ -6,11 +6,19 @@ const getUser = async (req: Request, res: Response) => {
     try {
         const result = await userServices.getUser();
 
-        res.status(200).json({
-            success: true,
-            message: "Users retrieved successfully",
-            data: result.rows,
-        });
+        if (result.rows.length === 0) {
+            res.status(404).json({
+                success: false,
+                message: "Not Found",
+            });
+        } else {
+            res.status(200).json({
+                success: true,
+                message: "Users retrieved successfully",
+                data: result.rows,
+            });
+        }
+
     } catch (err: any) {
         res.status(500).json({
             success: false,
@@ -33,7 +41,7 @@ const updateUser = async (req: Request, res: Response) => {
                 message: "Forbidden",
             });
         }
-      
+
 
         const result = await userServices.updateUser(updateData, targetUserId);
 

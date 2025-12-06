@@ -8,4 +8,4 @@ const router = express.Router();
 router.get('/', auth('admin'), userControllers.getUser);
 router.put("/:id", auth('admin', 'customer'), userControllers.updateUser);
 
-export const UserRoutes = router;
+export const userRoutes = router;

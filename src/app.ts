@@ -1,7 +1,8 @@
 import express, { Request, Response } from 'express';
 import initDB from './config/db';
 import { authRoutes } from './modules/auth/auth.routes';
-import { UserRoutes } from './modules/users/users.routes';
+import { userRoutes } from './modules/users/users.routes';
+import { vehicleRoutes } from './modules/vehicle/vehicle.routes';
 
 const app = express();
 
@@ -16,8 +17,11 @@ app.get("/", (req: Request, res: Response) => {
 //auth routes
 app.use("/api/v1/auth", authRoutes);
 
-//users CRUD
-app.use("/api/v1/users", UserRoutes);
+//users routes
+app.use("/api/v1/users", userRoutes);
+
+// vehicle routes
+app.use("/api/v1/vehicles", vehicleRoutes);
 
 
 export default app;
