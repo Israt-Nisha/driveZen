@@ -7,7 +7,8 @@ const router = express.Router();
 
 router.post("/", auth("admin"), vehicleController.createVehicle);
 router.get("/", vehicleController.getAllVehicle);
-router.get("/:id", vehicleController.getSingleVehicle)
-router.put("/:id", auth("admin"), vehicleController.updateVehicle)
+router.get("/:id", vehicleController.getSingleVehicle);
+router.put("/:id", auth("admin"), vehicleController.updateVehicle);
+router.delete("/:id", auth('admin'), vehicleController.deleteVehicle);
 
 export const vehicleRoutes = router;
