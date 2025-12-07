@@ -7,8 +7,7 @@ const signUpUser = async (payload: Record<string, unknown>) => {
  let { name, email, password, phone, role } = payload;
 
   email = (email as string).toLowerCase();
-
-
+  
   if ((password as string).length < 6) {
   throw new Error("Password must be at least 6 characters");
 }
