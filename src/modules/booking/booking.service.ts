@@ -2,51 +2,53 @@ import { pool } from "../../config/db";
 
 const createBooking = async (payload: Record<string, unknown>) => {
 
-    const { customer_id, vehicle_id, rent_start_date, rent_end_date } = payload;
+  const { customer_id, vehicle_id, rent_start_date, rent_end_date } = payload;
 
-    const vehicleRes = await pool.query(
-        `SELECT  vehicle_name, daily_rent_price FROM vehicles WHERE id = $1 AND availability_status = 'available'`,
-        [vehicle_id]
-    );
+  const vehicleRes = await pool.query(
+    `SELECT  vehicle_name, daily_rent_price FROM vehicles WHERE id = $1 AND availability_status = 'available'`,
+    [vehicle_id]
+  );
 
-    if (vehicleRes.rowCount === 0) {
-        throw new Error("Vehicle not available");
-    }
+  if (vehicleRes.rowCount === 0) {
+    throw new Error("Vehicle not available");
+  }
 
-    const vehicle = vehicleRes.rows[0];
+  const vehicle = vehicleRes.rows[0];
 
-    const start = new Date(rent_start_date as string);
-    const end = new Date(rent_end_date as string);
-    const number_of_days =
-        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const start = new Date(`${rent_start_date}T00:00:00Z`);
+  const end = new Date(`${rent_end_date}T00:00:00Z`);
 
-    if (number_of_days <= 0) {
-        throw new Error("rent_end_date must be after rent_start_date");
-    }
+  const number_of_days =
+    Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 
-    const total_price = number_of_days * vehicle.daily_rent_price;
+  if (number_of_days <= 0) {
+    throw new Error("rent_end_date must be after rent_start_date");
+  }
 
-    const result = await pool.query(
-        `INSERT INTO bookings(customer_id, vehicle_id, rent_start_date, rent_end_date, total_price, status)
+  const total_price = number_of_days * vehicle.daily_rent_price;
+
+
+  const result = await pool.query(
+    `INSERT INTO bookings(customer_id, vehicle_id, rent_start_date, rent_end_date, total_price, status)
       VALUES($1, $2, $3, $4, $5, 'active') RETURNING *`,
-        [customer_id, vehicle_id, rent_start_date, rent_end_date, total_price,]
-    );
+    [customer_id, vehicle_id, rent_start_date, rent_end_date, total_price,]
+  );
 
-    await pool.query(
-        `UPDATE vehicles SET availability_status = 'booked' WHERE id = $1`,
-        [vehicle_id]
-    );
+  await pool.query(
+    `UPDATE vehicles SET availability_status = 'booked' WHERE id = $1`,
+    [vehicle_id]
+  );
 
-    const formattedBooking = {
-        ...result.rows[0],
-        rent_start_date: result.rows[0].rent_start_date.toISOString().split("T")[0],
-        rent_end_date: result.rows[0].rent_end_date.toISOString().split("T")[0],
-    };
-    return {
+  const formattedBooking = {
+    ...result.rows[0],
+    rent_start_date: result.rows[0].rent_start_date.toISOString().split("T")[0],
+    rent_end_date: result.rows[0].rent_end_date.toISOString().split("T")[0],
+  };
+  return {
 
-        booking: formattedBooking,
-        vehicle: vehicle,
-    }
+    booking: formattedBooking,
+    vehicle: vehicle,
+  }
 };
 
 
@@ -104,8 +106,68 @@ const getAllBooking = async (user: any) => {
 };
 
 
+const updateBooking = async (payload: Record<string, unknown>, user: any, id: string) => {
+  const { status } = payload;
+
+  const bookingRes = await pool.query(`SELECT * FROM bookings WHERE id = $1`, [id]);
+
+  if (bookingRes.rowCount === 0) {
+    throw new Error("Booking not found");
+  }
+
+  const booking = bookingRes.rows[0];
+
+  if (user.role === "customer") {
+    if (booking.customer_id !== Number(user.id)) {
+      throw new Error("Bad Request for id");
+
+    }
+    if (status !== "cancelled") {
+      throw new Error("Bad Request");
+    }
+  }
+
+  if (user.role === "admin") {
+    if (status !== "returned") {
+      throw new Error("Bad Request");
+    }
+  }
+
+  const updatedBookingRes = await pool.query(
+    `UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *`,
+    [status, id]
+  );
+
+  const updatedBooking = updatedBookingRes.rows[0];
+
+  let vehicleUpdate = null;
+
+  if (status === "returned" || status === "cancelled") {
+    const vehicleRes = await pool.query(
+      `UPDATE vehicles 
+         SET availability_status = 'available' 
+         WHERE id = $1 
+         RETURNING availability_status`,
+      [booking.vehicle_id]
+    );
+
+    vehicleUpdate = vehicleRes.rows[0];
+  }
+
+  if (user.role === "admin") {
+    return {
+      ...updatedBooking,
+      vehicle: vehicleUpdate,
+    };
+  }
+
+  return {
+    ...updatedBooking,
+  }
+};
 
 export const bookingService = {
-    createBooking,
-    getAllBooking,
+  createBooking,
+  getAllBooking,
+  updateBooking,
 };

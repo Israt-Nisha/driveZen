@@ -30,7 +30,7 @@ const getAllBooking = async (req: Request, res: Response) => {
     try {
 
         const loggedUser = req.user!;
-        const bookings = await bookingService.getAllBooking(loggedUser);
+        const result = await bookingService.getAllBooking(loggedUser);
 
         const message =
             loggedUser.role === "admin"
@@ -40,7 +40,7 @@ const getAllBooking = async (req: Request, res: Response) => {
         res.status(200).json({
             success: true,
             message,
-            data: bookings,
+            data: result,
         });
     } catch (err: any) {
         res.status(500).json({
@@ -48,10 +48,35 @@ const getAllBooking = async (req: Request, res: Response) => {
             message: err.message,
         });
     }
-}
+};
+
+
+const updateBooking = async (req: Request, res: Response) => {
+    try {
+        const loggedUser = req.user!;
+        const result = await bookingService.updateBooking(req.body, loggedUser, req.params.id!);
+
+        let message = "";
+        if (req.body.status === "cancelled") message = "Booking cancelled successfully";
+        if (req.body.status === "returned") message = "Booking marked as returned. Vehicle is now available";
+
+        res.status(200).json({
+            success: true,
+            message,
+            data: result,
+        });
+    } catch (err: any) {
+        res.status(500).json({
+            success: false,
+            message: err.message,
+        });
+    }
+};
+
 
 export const bookingContorller = {
     createBooking,
     getAllBooking,
+    updateBooking,
 
 }
